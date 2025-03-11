@@ -28,7 +28,8 @@ var (
 )
 
 var (
-	errorsFailedCrlCheck = metric.NewCounter("mtlsErrorsFailedCrlCheck")
+	errorsFailedCrlRenewal = metric.NewCounter("errorsFailedCrlRenewal")
+	errorsFailedCrlQuery   = metric.NewCounter("errorsFailedCrlQuery")
 )
 
 // contains Revocation List
@@ -58,13 +59,12 @@ func RunServer(handler fasthttp.RequestHandler) {
 			cert := verifiedChains[0][0]
 			issuerCert := verifiedChains[0][1]
 
-			log.Debugf("Server certificate: %s\n", cert.Subject.CommonName)
-			log.Debugf("Server certificate issuer: %s\n", issuerCert.Subject.CommonName)
-
-			log.Debugf("Validating server certificate with CRL (serial: %s)\n", cert.SerialNumber.String())
+			log.Debugf("Validating server certificate with CRL (serial: %s)", cert.SerialNumber.String())
 
 			err := queryCRL(cert, issuerCert)
 			if err != nil {
+				errorsFailedCrlQuery.Inc()
+				log.Errorf("CRL query failed: %s", err)
 				return err
 			}
 
@@ -86,7 +86,7 @@ func RunServer(handler fasthttp.RequestHandler) {
 		for range ticker.C {
 			err = checkCRL()
 			if err != nil {
-				errorsFailedCrlCheck.Inc()
+				errorsFailedCrlRenewal.Inc()
 				log.Errorf("CRL check failed: %s", err)
 			}
 		}

@@ -59,6 +59,25 @@ func TestMtls(t *testing.T) {
 	assert.Equal(t, "Hello World!", string(resp.Body()))
 }
 
+func TestMtlsForward(t *testing.T) {
+	setFlags("ca-chain.crt", "DV1.crt", "DV1_unenc.key")
+	client, err := mtls.NewClient("Server1")
+	assert.Nil(t, err)
+
+	req := fasthttp.AcquireRequest()
+	resp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseRequest(req)
+	defer fasthttp.ReleaseResponse(resp)
+
+	req.Header.SetMethod(fasthttp.MethodGet)
+	req.SetRequestURI("https://localhost:9443/erfef")
+
+	err = client.DoTimeout(req, resp, 5*time.Second)
+	assert.Nil(t, err)
+
+	assert.Equal(t, fasthttp.StatusOK, resp.StatusCode())
+}
+
 func TestMtls_Random(t *testing.T) {
 	setFlags("example-ca.crt", "example_cl1.crt", "example_client1.key")
 	client, err := mtls.NewClient("Server1")

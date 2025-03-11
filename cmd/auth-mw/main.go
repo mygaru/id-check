@@ -9,6 +9,18 @@ import (
 	"gitlab.adtelligent.com/common/shared/log"
 	"gitlab.adtelligent.com/common/shared/metric"
 	"gitlab.adtelligent.com/common/shared/util"
+	"time"
+)
+
+var (
+	forwardTrafficAddr = flag.String("authMWForwardTrafficAddr", "https://en.wikipedia.org/wiki/URL", "Where you want the Auth MW to forward your request to...")
+	forwardTimeout     = flag.Duration("authMWForwardTimeout", 5*time.Second, "How long to wait for forwarded request")
+)
+
+var (
+	forwardRequests           = metric.NewCounter("authMWForwardRequests")
+	forwardSuccessfulRequests = metric.NewCounter("authMWForwardSuccessfulRequests")
+	forwardFailedRequests     = metric.NewCounter("authMWForwardFailedRequests")
 )
 
 func main() {
@@ -23,14 +35,12 @@ func main() {
 }
 
 var (
-	Requests            = metric.NewCounter("authMWRequests")
-	OptionsRequests     = metric.NewCounter("authMWOptionsRequests")
-	UnsupportedRequests = metric.NewCounter("authMWUnsupportedRequests")
+	Requests        = metric.NewCounter("authMWRequests")
+	OptionsRequests = metric.NewCounter("authMWOptionsRequests")
 )
-var writeLogUnsupportedError = flag.Bool("authMWWriteLogUnsupportedError", true, "Unsupported http path Logger")
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
-	path := ctx.Path()
+	path := string(ctx.Path())
 
 	Requests.Inc()
 
@@ -42,30 +52,38 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	util.SetRequestOrigin(ctx)
 	util.SetPermissionsPolicy(ctx)
 
-	switch string(path) {
+	switch path {
 	case "/test", "/test/":
 		_, _ = fmt.Fprintf(ctx, "Hello World!")
-	case "/egg", "/egg/":
-		_, _ = fmt.Fprintf(ctx, `
-      Auth MW Server
-----------------------------------
-	    /\_/\
-	  =( °w° )=
-	    ) - (  //
-	   (__ __)//
-----------------------------------
-      All rights reserved
 
-Rev: %s / %s
-MyGaru Inc
+	default:
+		forwardRequests.Inc()
 
-`, log.GetBuildRevision(), log.GetBuildVersion())
+		req := fasthttp.AcquireRequest()
+		resp := fasthttp.AcquireResponse()
 
-		if *writeLogUnsupportedError {
-			ctx.Logger().Printf("Unsupported http path requested: %q", path)
+		ctx.Request.CopyTo(req)
+
+		ogQueryPArams := ctx.QueryArgs().String()
+
+		if ogQueryPArams != "" {
+			req.SetRequestURI(*forwardTrafficAddr + "?" + ogQueryPArams)
+		} else {
+			req.SetRequestURI(*forwardTrafficAddr)
 		}
 
-		ctx.Error("Unsupported http path", fasthttp.StatusNotFound)
-		UnsupportedRequests.Inc()
+		err := fasthttp.DoTimeout(req, resp, *forwardTimeout)
+		if err != nil {
+			forwardFailedRequests.Inc()
+			ctx.Error(fmt.Sprintf("request failed: %s", err), fasthttp.StatusBadRequest)
+		}
+
+		ctx.SetStatusCode(resp.StatusCode())
+		ctx.SetBody(resp.Body())
+
+		fasthttp.ReleaseRequest(req)
+		fasthttp.ReleaseResponse(resp)
+
+		forwardSuccessfulRequests.Inc()
 	}
 }
