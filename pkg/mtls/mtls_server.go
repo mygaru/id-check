@@ -17,7 +17,7 @@ import (
 
 // todo add more http flags & metrics
 var (
-	httpServerListenAddr = flag.String("httpServerListenAddr", ":443", "")
+	httpServerListenAddr = flag.String("mtlsServerListenAddr", ":443", "")
 )
 
 var (
@@ -34,7 +34,7 @@ var (
 // contains Revocation List
 var crlAtomic atomic.Value
 
-func Run(handler fasthttp.RequestHandler) {
+func RunServer(handler fasthttp.RequestHandler) {
 	err := checkCRL()
 	if err != nil {
 		log.Fatalf("CRL check failed: %s", err)

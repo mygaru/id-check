@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/valyala/fasthttp"
 	"os"
-	"time"
 )
 
 var (
@@ -17,21 +16,10 @@ var (
 	mtlsClientPrivateKeyPath = flag.String("mtlsClientPrivateKeyPath", "", "path to client certificate's corresponding UNENCRYTPTED private key")
 )
 
-type Client struct {
-	httpClient *fasthttp.Client
-	serverName string
-}
-
-// SendReqEncrypted will send your request using a TLS Config built from the flags you indicated.
-// It returns an error if any and the response is returned back in resp.
-func (client *Client) SendReqEncrypted(req *fasthttp.Request, resp *fasthttp.Response, timeout time.Duration) error {
-	return client.httpClient.DoTimeout(req, resp, timeout)
-}
-
-// InitClient creates an HTTP client with a TLS Config
+// NewClient creates an HTTP client with a TLS Config
 // Use serverName when the Common Name or Alternative Names of the server's certificate do
 // NOT correspond to its FQDN or IP. Set it as the server's CN.
-func InitClient(serverName string) (*Client, error) {
+func NewClient(serverName string) (*fasthttp.Client, error) {
 	caCertPool, err := createCaPool()
 	if err != nil {
 		return nil, fmt.Errorf("error creating ca cert pool: %w", err)
@@ -48,10 +36,8 @@ func InitClient(serverName string) (*Client, error) {
 		ServerName:   serverName,
 	}
 
-	// todo add more settings
 	httpClient := &fasthttp.Client{TLSConfig: tlsCfg}
-
-	return &Client{httpClient: httpClient}, nil
+	return httpClient, nil
 }
 
 func createCaPool() (*x509.CertPool, error) {

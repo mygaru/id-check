@@ -19,7 +19,7 @@ func main() {
 	// :'( empty
 	log.Infof("Initialized.")
 
-	mtls.Run(requestHandler)
+	mtls.RunServer(requestHandler)
 }
 
 var (
