@@ -6,7 +6,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: dcr-ckoud
+  project: dcr-cloud
 
   source:
     repoURL: https://gitlab.adtelligent.com/myg/devops/myg-deployment.git
