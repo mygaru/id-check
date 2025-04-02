@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mygaru-dcr-authmw
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: dcr-ckoud
+
+  source:
+    repoURL: https://gitlab.adtelligent.com/myg/devops/myg-deployment.git
+    targetRevision: master
+    path: helm-charts
+
+    helm:
+      # Extra parameters to set (same as setting through values.yaml, but these take precedence)
+      parameters:
+      - name: "deployment.server.image.tag"
+        value: "TAG_NAME"
+      valueFiles:
+        - mygaru-values/prod/dcr-cloud/values.dcr-authmw.yaml
+  # Destination cluster and namespace to deploy the application
+  destination:
+    server: https://128.140.27.76:6443
+    namespace: dcr-cloud
+
+  # Sync policy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
