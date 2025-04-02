@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	forwardTrafficAddr = flag.String("authMWForwardTrafficAddr", "https://en.wikipedia.org/wiki/URL", "Where you want the Auth MW to forward your request to...")
+	forwardTrafficAddr = flag.String("authMWForwardTrafficAddr", "https://en.wikipedia.org", "Where you want the Auth MW to forward your request to...")
 	forwardTimeout     = flag.Duration("authMWForwardTimeout", 5*time.Second, "How long to wait for forwarded request")
 )
 
@@ -57,6 +57,8 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 		_, _ = fmt.Fprintf(ctx, "Hello World!")
 
 	default:
+		// todo set header the name of certificate
+
 		forwardRequests.Inc()
 
 		req := fasthttp.AcquireRequest()
@@ -67,9 +69,9 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 		ogQueryPArams := ctx.QueryArgs().String()
 
 		if ogQueryPArams != "" {
-			req.SetRequestURI(*forwardTrafficAddr + "?" + ogQueryPArams)
+			req.SetRequestURI(*forwardTrafficAddr + string(ctx.Path()) + "?" + ogQueryPArams)
 		} else {
-			req.SetRequestURI(*forwardTrafficAddr)
+			req.SetRequestURI(*forwardTrafficAddr + string(ctx.Path()))
 		}
 
 		err := fasthttp.DoTimeout(req, resp, *forwardTimeout)
