@@ -1,4 +1,4 @@
-name: CI/CD utk
+name: Deploy AuthMW to UTK
 
 on:
   push:
