@@ -9,6 +9,7 @@ import (
 	"gitlab.adtelligent.com/common/shared/log"
 	"gitlab.adtelligent.com/common/shared/metric"
 	"gitlab.adtelligent.com/common/shared/util"
+	"net/url"
 	"time"
 )
 
@@ -41,8 +42,14 @@ var (
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
 	path := string(ctx.Path())
-
 	Requests.Inc()
+
+	// todo do this only once on init
+	parsed, err := url.Parse(*forwardTrafficAddr)
+	if err != nil {
+		log.Fatalf("Failed to parse forwardTrafficAddr: %v", err)
+	}
+	client := fasthttp.HostClient{Addr: parsed.Host}
 
 	if util.OptionsRequestHandler(ctx) {
 		OptionsRequests.Inc()
@@ -74,7 +81,18 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 			req.SetRequestURI(*forwardTrafficAddr + string(ctx.Path()))
 		}
 
-		err := fasthttp.DoTimeout(req, resp, *forwardTimeout)
+		if ctx.IsTLS() && parsed.Scheme == "http" {
+			req.URI().SetScheme("http") // Force HTTP after copying
+		}
+
+		req.Header.SetHost(parsed.Host)
+
+		defer func() {
+			fasthttp.ReleaseRequest(req)
+			fasthttp.ReleaseResponse(resp)
+		}()
+
+		err := client.DoTimeout(req, resp, *forwardTimeout)
 		if err != nil {
 			forwardFailedRequests.Inc()
 			ctx.Error(fmt.Sprintf("request failed: %s", err), fasthttp.StatusBadRequest)
@@ -82,9 +100,6 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 
 		ctx.SetStatusCode(resp.StatusCode())
 		ctx.SetBody(resp.Body())
-
-		fasthttp.ReleaseRequest(req)
-		fasthttp.ReleaseResponse(resp)
 
 		forwardSuccessfulRequests.Inc()
 	}
