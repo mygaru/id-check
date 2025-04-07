@@ -1,0 +1,81 @@
+name: Sync Repositories
+
+on:
+  workflow_dispatch:
+    inputs:
+      REPO:
+        description: 'Target sync repository:'
+        required: true
+        type: choice
+        options:
+          - 'github.com/mygaru-vint/mygaru-acct-catcher.git'
+      REPO_BRANCH:
+        description: 'Target sync repository branch:'
+        required: true
+        type: choice
+        options:
+          - 'master'
+      PAT:
+        description: 'Target sync repostiory access token'
+        required: true
+
+jobs:
+  validate_input:
+    runs-on: [self-hosted, mygaru]
+    steps:
+      - name: Validate repo format
+        run: |
+          if [[ ! "${{ github.event.inputs.REPO }}" =~ ^github\.com\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+\.git$ ]]; then
+            echo "Error: Invalid REPO format. Expected format: 'github.com/owner/repository.git'."
+            exit 1
+          fi
+  sync:
+    needs: validate_input
+    runs-on: [self-hosted, mygaru]
+    env:
+      TARGET_REPO: "https://${{ github.event.inputs.PAT }}@${{ github.event.inputs.REPO }}"
+      TARGET_REPO_BRANCH: "${{ github.event.inputs.REPO_BRANCH }}"
+      SYNCIGNORE: ".syncignore"
+
+    steps:
+      - name: Checkout repository (REPO_A)
+        uses: actions/checkout@v3
+
+      - name: Check if SYNCIGNORE exists
+        run: |
+          if [ ! -f "$SYNCIGNORE" ]; then
+            echo "$SYNCIGNORE not found! Stopping sync..."
+            exit 1
+          fi
+
+      - name: Generate unique temporary directory
+        id: temp_dir
+        run: echo "TEMP_DIR=$(mktemp -d)" >> $GITHUB_ENV
+
+      - name: Clone mygaru target repo
+        run: |
+          mkdir -p "$TEMP_DIR/target_repo"
+          git clone --branch "$TARGET_REPO_BRANCH" "$TARGET_REPO" "$TEMP_DIR/target_repo"
+
+      - name: Sync REPO_A to TARGET_REPO
+        run: |
+          rsync -av --exclude-from="$SYNCIGNORE" "$GITHUB_WORKSPACE/" "$TEMP_DIR/target_repo/"
+      - name: Configure Git user
+        run: |
+          git config --global user.name "Mygaru Sync"
+          git config --global user.email "sync@mygaru.com"
+
+      - name: Commit and push changes to target_repo
+        run: |
+          cd "$TEMP_DIR/target_repo"
+          git add .
+          if ! git diff --cached --quiet; then
+            git commit -m "Sync changes from source repo"
+            git push origin "$TARGET_REPO_BRANCH"
+          else
+            echo "No changes to commit."
+          fi
+
+      - name: Cleanup runner
+        run: |
+          rm -rf $TEMP_DIR

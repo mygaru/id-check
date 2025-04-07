@@ -1,0 +1,105 @@
+name: CI/CD utk
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+-ukrtelecom'
+env:
+  ENV_NAME: prod
+jobs:
+  build:
+    runs-on: [self-hosted, ukrtelecom] 
+    outputs:
+        provider_name: ${{ steps.extract_provider.outputs.provider_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+        id: buildx
+        with:
+          install: true
+      - name: Extract provider from tag
+        id: extract_provider
+        run: |
+          TAG_NAME="${GITHUB_REF##*/}"
+          PROVIDER_NAME="${TAG_NAME#*-}"
+          echo "PROVIDER_NAME extracted: $PROVIDER_NAME"
+          echo "provider_name=${PROVIDER_NAME}" >> $GITHUB_OUTPUT
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.DEPLOY_GHCR_USERNAME }}
+          password: ${{ secrets.DEPLOY_GHCR_PASSWORD }}
+
+      - name: Get array of image tags
+        shell: bash
+        run: echo "VERSION=$(docker run --rm quay.io/skopeo/stable:v1.3.1 --creds=${{ secrets.DEPLOY_GHCR_USERNAME }}:${{ secrets.DEPLOY_GHCR_PASSWORD }} list-tags docker://ghcr.io/$GITHUB_REPOSITORY | jq -r '.Tags[]' |  grep -E '[0-9]+\.[0-9]+\.[0-9]+\.[a-z]+\.[0-9]+' | sort -t . -g -k 5 | tail -n 1 | awk -F \. {'print $5+1'})" >> $GITHUB_ENV
+
+
+      - name: Get DATE Env
+        shell: bash
+        run: echo "DATE=$(date '+%Y-%m-%dT%H:%M:%S%z' | sed 's@^.\{22\}@&:@')" >> $GITHUB_ENV
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          pull: true
+          build-args: |
+            GITHUB_TOKEN=${{ secrets.GH_PACKAGES_TOKEN }}
+            ENV_NAME=${{ env.ENV_NAME }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.ref_name }}
+  deploy:
+    needs: build
+    runs-on: [self-hosted, ukrtelecom]
+    environment: ${{ needs.build.outputs.provider_name }}
+    steps:
+      - name: Install kubectl
+        run: |
+          curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x ./kubectl
+          sudo mv ./kubectl /usr/local/bin/kubectl
+
+      - name: Set up Kubernetes Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+
+      - name: Replace TAG_NAME in argo-application-${{ needs.build.outputs.provider_name }}.yml
+        run: |
+          sed -i 's/TAG_NAME/${{ github.ref_name }}/g' ./cfg/argo-application-${{ needs.build.outputs.provider_name }}.yml
+
+      - name: Deploy using kubectl
+        run: |
+          kubectl apply -f ./cfg/argo-application-${{ needs.build.outputs.provider_name }}.yml
+
+      - name: Healthcheck
+        run: |
+          APP_NAME="authmw"
+          NAMESPACE="argocd"
+          MAX_ATTEMPTS=3
+          WAIT_TIME=20
+
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            echo "$attempt: Checking state for $APP_NAME..."
+            STATUS=$(kubectl get application "$APP_NAME" -n "$NAMESPACE" -o jsonpath='{.status.sync.status} {.status.health.status}')
+            echo "Status: $STATUS"
+
+            if [[ "$STATUS" == "Synced Healthy" ]]; then
+              echo "Nice!"
+              exit 0
+            else
+              echo "Not healthy."
+              if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+                sleep "$WAIT_TIME"
+              fi
+            fi
+          done
+
+          echo "Not healthy after $MAX_ATTEMPTS retries."
+          exit 1
