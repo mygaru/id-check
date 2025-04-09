@@ -62,7 +62,7 @@ func TestMtls(t *testing.T) {
 
 func TestMtlsForward(t *testing.T) {
 	setFlags("ca-chain.crt", "DV1.crt", "DV1_unenc.key")
-	client, err := mtls.NewClient("")
+	client, err := mtls.NewClient("Server1")
 	assert.Nil(t, err)
 
 	req := fasthttp.AcquireRequest()
@@ -71,7 +71,7 @@ func TestMtlsForward(t *testing.T) {
 	defer fasthttp.ReleaseResponse(resp)
 
 	req.Header.SetMethod(fasthttp.MethodGet)
-	req.SetRequestURI("https://authmw.utk.mygaru.com/pim")
+	req.SetRequestURI("https://localhost:9443/ccc")
 
 	err = client.DoTimeout(req, resp, 5*time.Second)
 	assert.Nil(t, err)

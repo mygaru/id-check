@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	forwardTrafficAddr = flag.String("authMWForwardTrafficAddr", "https://en.wikipedia.org", "Where you want the Auth MW to forward your request to...")
+	forwardTrafficAddr = flag.String("authMWForwardTrafficAddr", "", "Where you want the Auth MW to forward your request to...")
 	forwardTimeout     = flag.Duration("authMWForwardTimeout", 5*time.Second, "How long to wait for forwarded request")
 )
 
@@ -64,7 +64,7 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 		_, _ = fmt.Fprintf(ctx, "Hello World!")
 
 	default:
-		// todo set header the name of certificate
+		peerCert := ctx.TLSConnectionState().PeerCertificates[0]
 
 		forwardRequests.Inc()
 
@@ -72,6 +72,8 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 		resp := fasthttp.AcquireResponse()
 
 		ctx.Request.CopyTo(req)
+
+		req.Header.Set("X-ClientID", peerCert.Subject.CommonName)
 
 		ogQueryPArams := ctx.QueryArgs().String()
 
@@ -82,7 +84,7 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 		}
 
 		if ctx.IsTLS() && parsed.Scheme == "http" {
-			req.URI().SetScheme("http") // Force HTTP after copying
+			req.URI().SetScheme("http")
 		}
 
 		req.Header.SetHost(parsed.Host)
@@ -92,14 +94,11 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 			fasthttp.ReleaseResponse(resp)
 		}()
 
-		log.Debugf("Final Request URI: %s", req.URI())
-		log.Debugf("Final Request Headers: %s", req.Header.String())
-		log.Debugf("Final Request Host: %s", req.Host())
-
 		err := client.DoTimeout(req, resp, *forwardTimeout)
 		if err != nil {
 			forwardFailedRequests.Inc()
 			ctx.Error(fmt.Sprintf("request failed: %s", err), fasthttp.StatusBadRequest)
+			return
 		}
 
 		ctx.SetStatusCode(resp.StatusCode())
