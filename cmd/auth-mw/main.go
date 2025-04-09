@@ -92,6 +92,10 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 			fasthttp.ReleaseResponse(resp)
 		}()
 
+		log.Debugf("Final Request URI: %s", req.URI())
+		log.Debugf("Final Request Headers: %s", req.Header.String())
+		log.Debugf("Final Request Host: %s", req.Host())
+
 		err := client.DoTimeout(req, resp, *forwardTimeout)
 		if err != nil {
 			forwardFailedRequests.Inc()
