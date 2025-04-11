@@ -1,5 +1,7 @@
 # Build stage (named "builder")
 FROM golang:1.23 AS builder
+ARG VAULT_URI
+
 ARG APP_NAME=auth-mw
 WORKDIR /usr/src/${APP_NAME}
 
@@ -8,10 +10,12 @@ COPY . .
 COPY ./cfg/example.ini /etc/${APP_NAME}/base.ini
 
 RUN mkdir -p /etc/${APP_NAME}/requests
+
 # Build the Go binary
-RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor \
+RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor "\
+    -X gitlab.adtelligent.com/common/shared/secretFlags.secretURI=${VAULT_URI}" \
     -a -installsuffix cgo -o /usr/local/bin/${APP_NAME} ./cmd/${APP_NAME}
- 
+
 # Final stage (production image)
 FROM alpine
 ARG APP_NAME=auth-mw
