@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/mygaru/mygaru-authmw/pkg/mtls"
 	"github.com/valyala/fasthttp"
-	"github.com/vharitonsky/iniflags"
 	"gitlab.adtelligent.com/common/shared/log"
 	"gitlab.adtelligent.com/common/shared/metric"
+	"gitlab.adtelligent.com/common/shared/secretFlags"
 	"gitlab.adtelligent.com/common/shared/util"
 	"net/url"
 	"time"
@@ -25,7 +25,7 @@ var (
 )
 
 func main() {
-	iniflags.Parse()
+	secretFlags.Init()
 	util.LogAllFlags()
 
 	log.Infof("Initializing...")
