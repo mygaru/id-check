@@ -103,6 +103,8 @@ jobs:
           file: ./Dockerfile
           push: true
           pull: true
+          build-args: |
+            VAULT_URI=${{ env.SECRET_URI }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.ref_name }}
 
