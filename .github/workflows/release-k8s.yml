@@ -8,6 +8,10 @@ jobs:
   build:
     runs-on: [self-hosted, mygaru] 
     environment: k8s
+    env:
+      PROJECT_NAME: cloud
+      VAULT_TOKEN_EXPIRATION: 24h
+      VAULT_SECRET_ID_TTL: 8760h
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -18,6 +22,68 @@ jobs:
         with:
           install: true
 
+      - name: Install Vault CLI
+        run: |
+          VAULT_VERSION="1.14.1"
+          curl -sLo vault.zip "https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip"
+          unzip vault.zip
+          sudo mv vault /usr/local/bin/vault
+          vault --version
+
+      - name: Vault Post-Installation Configuration
+        id: vault_post_install
+        run: |
+          # Установка переменных окружения в зависимости от типа окружения (dev/prod)
+          export VAULT_TOKEN=${{ secrets.VAULT_TOKEN }}
+          export VAULT_HOST=${{ secrets.VAULT_HOST }}
+
+          # Проверяем, включена ли уже аутентификация AppRole
+          if ! vault auth list -address="https://$VAULT_HOST" | grep -q '^approle/'; then
+            vault auth enable -address="https://$VAULT_HOST" approle
+          else
+            echo "AppRole auth method is already enabled."
+          fi
+
+          if vault kv get -address="https://$VAULT_HOST" secrets/${{ env.PROJECT_NAME }}/prod/${{ github.event.repository.name }} > /dev/null 2>&1; then
+            vault kv patch -address="https://$VAULT_HOST" secrets/${{ env.PROJECT_NAME }}/prod/${{ github.event.repository.name }} REVISION="${{ github.ref_name }}"
+          else
+            vault kv put -address="https://$VAULT_HOST" secrets/${{ env.PROJECT_NAME }}/prod/${{ github.event.repository.name }} REVISION="${{ github.ref_name }}"
+          fi
+          
+          vault policy write -address="https://$VAULT_HOST" ${{ github.event.repository.name }}-prod-policy -<<EOF
+          path "secrets/data/${{ env.PROJECT_NAME }}/prod/${{ github.event.repository.name }}" {
+            capabilities = [ "read" ]
+          }
+          EOF
+          
+          vault write -address="https://$VAULT_HOST" auth/approle/role/${{ github.event.repository.name }}-prod-role \
+              secret_id_ttl="${{ env.VAULT_SECRET_ID_TTL }}" \
+              token_policies="${{ github.event.repository.name }}-prod-policy" \
+              token_ttl="${{ env.VAULT_TOKEN_EXPIRATION }}" \
+              token_max_ttl="${{ env.VAULT_TOKEN_EXPIRATION }}" \
+              token_type="service"
+
+          role_id=$(vault read -address="https://$VAULT_HOST" auth/approle/role/${{ github.event.repository.name }}-prod-role/role-id -format=json | jq -r '.data.role_id')
+          echo "ROLE_ID=$role_id" >> $GITHUB_ENV
+
+      - name: Retrieve secret_id from Vault
+        id: vault_secret_id
+        run: |
+          # Установка переменных окружения в зависимости от типа окружения (dev/prod)
+          export VAULT_TOKEN=${{ secrets.VAULT_TOKEN }}
+          export VAULT_HOST=${{ secrets.VAULT_HOST }}
+
+          secret_id=$(vault write -address="https://$VAULT_HOST" -f auth/approle/role/${{ github.event.repository.name }}-prod-role/secret-id -format=json | jq -r '.data.secret_id')
+          echo "SECRET_ID=$secret_id" >> $GITHUB_ENV
+          echo "Secret_ID from Vault: $secret_id"
+
+      - name: Formulate SECRET_URI
+        id: formulate_secret_uri
+        run: |
+          VAULT_HOST=${{ secrets.VAULT_HOST }}
+          SECRET_URI="vault://${{ env.ROLE_ID }}:${{ env.SECRET_ID }}@$VAULT_HOST/secrets/data/${{ env.PROJECT_NAME }}/prod/${{ github.event.repository.name }}?&tokenExpiration=${{ env.VAULT_TOKEN_EXPIRATION }}"
+          echo "SECRET_URI=$SECRET_URI" >> $GITHUB_ENV
+          echo "SECRET_URI: $SECRET_URI"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1

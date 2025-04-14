@@ -12,8 +12,8 @@ COPY ./cfg/example.ini /etc/${APP_NAME}/base.ini
 RUN mkdir -p /etc/${APP_NAME}/requests
 
 # Build the Go binary
-RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor "\
-    -X gitlab.adtelligent.com/common/shared/secretFlags.secretURI=${VAULT_URI}" \
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor \
+    -ldflags="-X gitlab.adtelligent.com/common/shared/secretFlags.secretURI=${VAULT_URI}" \
     -a -installsuffix cgo -o /usr/local/bin/${APP_NAME} ./cmd/${APP_NAME}
 
 # Final stage (production image)
@@ -28,4 +28,4 @@ COPY --from=builder /etc/${APP_NAME}/requests /etc/${APP_NAME}/requests
 EXPOSE 8090
 
 # Set the command to run the application
-CMD ["/usr/local/bin/auth-mw", "-config", "/etc/auth-mw/base.ini"]
+CMD ["/usr/local/bin/${APP_NAME}", "-config", "/etc/${APP_NAME}/base.ini"]
