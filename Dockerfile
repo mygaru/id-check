@@ -28,4 +28,4 @@ COPY --from=builder /etc/${APP_NAME}/requests /etc/${APP_NAME}/requests
 EXPOSE 8090
 
 # Set the command to run the application
-CMD ["/usr/local/bin/${APP_NAME}", "-config", "/etc/${APP_NAME}/base.ini"]
+CMD ["/usr/local/bin/auth-mw", "-config", "/etc/auth-mw/base.ini"]
