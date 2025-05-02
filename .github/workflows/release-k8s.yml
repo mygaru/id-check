@@ -10,7 +10,7 @@ jobs:
     environment: k8s
     env:
       PROJECT_NAME: cloud
-      VAULT_TOKEN_EXPIRATION: 24h
+      VAULT_TOKEN_EXPIRATION: 0h
       VAULT_SECRET_ID_TTL: 8760h
     steps:
       - name: Checkout
