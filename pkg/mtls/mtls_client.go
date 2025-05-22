@@ -49,7 +49,16 @@ func createCaPool() (*x509.CertPool, error) {
 			return nil, fmt.Errorf("failed to read CA certificate from path %s: %w", *mtlsCaCertPath, err)
 		}
 	} else if *mtlsCaCertURL != "" {
-		// todo
+		var code int
+		code, caCert, err = fasthttp.Get(caCert, *mtlsCaCertURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CA certificate from URL %s: %w", *mtlsCaCertURL, err)
+		}
+
+		if code != fasthttp.StatusOK {
+			return nil, fmt.Errorf("failed to read CA certificate from URL %s: got %d, want %d", *mtlsCaCertURL, code, fasthttp.StatusOK)
+		}
+
 	} else {
 		return nil, fmt.Errorf("must specify either flags mtlsCaCertURL or mtlsCaCertPath")
 	}
