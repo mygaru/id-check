@@ -22,6 +22,7 @@ var (
 var (
 	mtlsServerCertPath       = flag.String("mtlsServerCertPath", "", "Path to file containing server certificate")
 	mtlsServerPrivateKeyPath = flag.String("mtlsServerPrivateKeyPath", "", "Path to file containing private key corresponding to server certificate")
+	mtlsServerMaxBodySize    = flag.Int("mtlsServerMaxBodySize", 536870912, "Max request body size")
 	mtlsCrlCheckInterval     = flag.Duration("mtlsCrlCheckInterval", 10*time.Second, "How often to refresh myGaru CRL")
 )
 
@@ -77,7 +78,12 @@ func RunServer(handler fasthttp.RequestHandler) {
 
 	lnTls := tls.NewListener(ln, tlsConfig)
 
-	if err := fasthttp.Serve(lnTls, handler); err != nil {
+	s := &fasthttp.Server{
+		Handler:            handler,
+		MaxRequestBodySize: *mtlsServerMaxBodySize,
+	}
+
+	if err := s.Serve(lnTls); err != nil {
 		log.Fatalf("Failed to serve: %s", err)
 	}
 }
