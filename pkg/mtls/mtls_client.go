@@ -12,8 +12,8 @@ import (
 var (
 	mtlsCaCertPath           = flag.String("mtlsCaCertPath", "", "path to CA certificate; either specify this or the mtlsCaCertURL")
 	mtlsCaCertURL            = flag.String("mtlsCaCertURL", "", "URL to get the CA certificate from; either specify this or the mtlsCaCertPath")
-	mtlsClientCertPath       = flag.String("mtlsClientCertPath", "", "path to client certificate")
-	mtlsClientPrivateKeyPath = flag.String("mtlsClientPrivateKeyPath", "", "path to client certificate's corresponding UNENCRYTPTED private key")
+	MtlsClientCertPath       = flag.String("mtlsClientCertPath", "", "path to client certificate")
+	MtlsClientPrivateKeyPath = flag.String("mtlsClientPrivateKeyPath", "", "path to client certificate's corresponding UNENCRYTPTED private key")
 )
 
 // NewClient creates an HTTP client with a TLS Config
@@ -25,7 +25,7 @@ func NewClient(serverName string) (*fasthttp.Client, error) {
 		return nil, fmt.Errorf("error creating ca cert pool: %w", err)
 	}
 
-	cert, err := tls.LoadX509KeyPair(*mtlsClientCertPath, *mtlsClientPrivateKeyPath)
+	cert, err := tls.LoadX509KeyPair(*MtlsClientCertPath, *MtlsClientPrivateKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load client certificate pair: %w", err)
 	}
