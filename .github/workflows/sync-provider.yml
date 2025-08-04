@@ -8,16 +8,13 @@ on:
         required: true
         type: choice
         options:
-          - 'github.com/mygaru-vint/mygaru-acct-catcher.git'
+          - 'github.com/mygaru/id-check.git'
       REPO_BRANCH:
         description: 'Target sync repository branch:'
         required: true
         type: choice
         options:
           - 'master'
-      PAT:
-        description: 'Target sync repostiory access token'
-        required: true
 
 jobs:
   validate_input:
@@ -33,7 +30,7 @@ jobs:
     needs: validate_input
     runs-on: [self-hosted, mygaru]
     env:
-      TARGET_REPO: "https://${{ github.event.inputs.PAT }}@${{ github.event.inputs.REPO }}"
+      TARGET_REPO: "https://${{ secrets.GH_PACKAGES_TOKEN }}@${{ github.event.inputs.REPO }}"
       TARGET_REPO_BRANCH: "${{ github.event.inputs.REPO_BRANCH }}"
       SYNCIGNORE: ".syncignore"
 
@@ -70,7 +67,7 @@ jobs:
           cd "$TEMP_DIR/target_repo"
           git add .
           if ! git diff --cached --quiet; then
-            git commit -m "Sync changes from source repo"
+            git commit -m "Sync"
             git push origin "$TARGET_REPO_BRANCH"
           else
             echo "No changes to commit."
