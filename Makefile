@@ -39,12 +39,7 @@ proto:
 
 include cmd/*/Makefile
 
-BUILD_CONSTS = \
-	-X gitlab.adtelligent.com/common/shared/log.buildVersion=`git rev-list --count $$(git rev-parse HEAD)` \
-	-X gitlab.adtelligent.com/common/shared/log.buildTime=`date -u '+%Y-%m-%d_%H:%M:%S'` \
-	-X gitlab.adtelligent.com/common/shared/log.buildRevision=`git rev-parse HEAD`
-
-BUILD_OPTS = -ldflags="$(BUILD_CONSTS)"  -mod=vendor
+BUILD_OPTS = -mod=vendor
 
 generate-quicktemplate: install-qtc
 	qtc -dir=./cmd

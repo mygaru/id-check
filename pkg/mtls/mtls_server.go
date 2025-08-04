@@ -7,8 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/valyala/fasthttp"
-	"gitlab.adtelligent.com/common/shared/log"
-	"gitlab.adtelligent.com/common/shared/metric"
+	"log"
 	"net"
 	"sync/atomic"
 	"time"
@@ -24,11 +23,6 @@ var (
 	mtlsServerPrivateKeyPath = flag.String("mtlsServerPrivateKeyPath", "", "Path to file containing private key corresponding to server certificate")
 	mtlsServerMaxBodySize    = flag.Int("mtlsServerMaxBodySize", 536870912, "Max request body size")
 	mtlsCrlCheckInterval     = flag.Duration("mtlsCrlCheckInterval", 10*time.Second, "How often to refresh myGaru CRL")
-)
-
-var (
-	errorsFailedCrlRenewal = metric.NewCounter("errorsFailedCrlRenewal")
-	errorsFailedCrlQuery   = metric.NewCounter("errorsFailedCrlQuery")
 )
 
 var (
@@ -57,16 +51,15 @@ func RunServer(handler fasthttp.RequestHandler) {
 			cert := verifiedChains[0][0]
 			issuerCert := verifiedChains[0][len(verifiedChains[0])-1]
 
-			log.Debugf("Validating server certificate with CRL (serial: %s)", cert.SerialNumber.String())
+			log.Printf("Validating server certificate with CRL (serial: %s)", cert.SerialNumber.String())
 
 			err := queryCRL(cert, issuerCert)
 			if err != nil {
-				errorsFailedCrlQuery.Inc()
-				log.Errorf("CRL query failed: %s", err)
+				log.Printf("CRL query failed: %s", err)
 				return err
 			}
 
-			log.Debugf("Certificate CRL check successful.")
+			log.Printf("Certificate CRL check successful.")
 			return nil
 		},
 	}
@@ -110,14 +103,13 @@ func setCRL(crlURL string) error {
 
 func queryCRL(cert *x509.Certificate, issuerCert *x509.Certificate) error {
 	if crlAtomic.Load() == nil || time.Now().Sub(crlLastCheck.Load().(time.Time)) >= *mtlsCrlCheckInterval {
-		log.Debugf("[*] Trying to renew CRL from %s...", cert.CRLDistributionPoints[0])
+		log.Printf("[*] Trying to renew CRL from %s...", cert.CRLDistributionPoints[0])
 		if len(cert.CRLDistributionPoints) != 1 {
 			return fmt.Errorf("expected 1 distribution point in issuer certificate, got: %v", issuerCert.CRLDistributionPoints)
 		}
 
 		err := setCRL(cert.CRLDistributionPoints[0])
 		if err != nil {
-			errorsFailedCrlRenewal.Inc()
 			return fmt.Errorf("failed to renew CRL: %w", err)
 		}
 	}
@@ -127,26 +119,26 @@ func queryCRL(cert *x509.Certificate, issuerCert *x509.Certificate) error {
 		return errors.New("CRL Atomic Load failed")
 	}
 
-	log.Debugf("[*] Checking CRL signature.")
+	log.Printf("[*] Checking CRL signature.")
 	err := crl.CheckSignatureFrom(issuerCert)
 	if err != nil {
 		return err
 	}
 
-	log.Debugf("[*] Checking CRL validity.")
+	log.Printf("[*] Checking CRL validity.")
 	if crl.NextUpdate.Before(time.Now()) {
 		return fmt.Errorf("CRL is outdated")
 	}
 
-	log.Debugf("[*] Searching for our certificate...")
+	log.Printf("[*] Searching for our certificate...")
 	for _, revokedCertificate := range crl.RevokedCertificateEntries {
-		log.Debugf("[*] Revoked certificate serial: %s.", revokedCertificate.SerialNumber.String())
+		log.Printf("[*] Revoked certificate serial: %s.", revokedCertificate.SerialNumber.String())
 		if revokedCertificate.SerialNumber.Cmp(cert.SerialNumber) == 0 {
-			log.Debugf("[-] Found validated certificate in list of revoked ones.")
+			log.Printf("[-] Found validated certificate in list of revoked ones.")
 			return fmt.Errorf("certificate was revoked")
 		}
 	}
 
-	log.Debugf("[+] Did not find validated certificate among revoked ones.")
+	log.Printf("[+] Did not find validated certificate among revoked ones.")
 	return nil
 }
