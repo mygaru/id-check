@@ -3,7 +3,7 @@ name: Deploy ID-check
 on:
   push:
     tags:
-      - '*'
+      - '[0-9]+.[0-9]+.[0-9]'
 jobs:
   build:
     runs-on: [self-hosted, mygaru] 
