@@ -1,4 +1,4 @@
-name: Deploy AuthMW to UTK
+name: Deploy ID check to UTK
 
 on:
   push:
@@ -80,7 +80,7 @@ jobs:
 
       - name: Healthcheck
         run: |
-          APP_NAME="authmw"
+          APP_NAME="id-check"
           NAMESPACE="argocd"
           MAX_ATTEMPTS=3
           WAIT_TIME=20

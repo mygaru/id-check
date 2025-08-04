@@ -2,7 +2,7 @@
 FROM golang:1.23 AS builder
 ARG VAULT_URI
 
-ARG APP_NAME=auth-mw
+ARG APP_NAME=id-check
 WORKDIR /usr/src/${APP_NAME}
 
 # Copy the source code and configuration
@@ -18,7 +18,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor \
 
 # Final stage (production image)
 FROM alpine
-ARG APP_NAME=auth-mw
+ARG APP_NAME=id-check
 
 # Copy the binary and configuration from the "builder" stage
 COPY --from=builder /usr/local/bin/${APP_NAME} /usr/local/bin/${APP_NAME}
@@ -28,4 +28,4 @@ COPY --from=builder /etc/${APP_NAME}/requests /etc/${APP_NAME}/requests
 EXPOSE 8090
 
 # Set the command to run the application
-CMD ["/usr/local/bin/auth-mw", "-config", "/etc/auth-mw/base.ini"]
+CMD ["/usr/local/bin/id-check", "-config", "/etc/id-check/base.ini"]

@@ -1,4 +1,4 @@
-name: Deploy AuthMW 
+name: Deploy ID-check 
 
 on:
   push:
@@ -136,7 +136,7 @@ jobs:
           kubectl apply -f "./cfg/argo-application.yml"
       - name: Healthcheck
         run: |
-          APP_NAME="mygaru-dcr-authmw"
+          APP_NAME="mygaru-dcr-id-check"
           NAMESPACE="argocd"
           MAX_ATTEMPTS=3
           WAIT_TIME=20

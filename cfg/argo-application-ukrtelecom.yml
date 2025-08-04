@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: authmw
+  name: id-check
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -18,7 +18,7 @@ spec:
       - name: "deployment.server.image.tag"
         value: "TAG_NAME"
       valueFiles:
-        - mygaru-values/ukrtelecom/values.authmw.yaml
+        - mygaru-values/ukrtelecom/values.id-check.yaml
   # Destination cluster and namespace to deploy the application
   destination:
     server: https://kubernetes.default.svc
