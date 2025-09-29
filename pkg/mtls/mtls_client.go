@@ -3,6 +3,7 @@ package mtls
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/valyala/fasthttp"
@@ -12,8 +13,8 @@ import (
 var (
 	mtlsCaCertPath           = flag.String("mtlsCaCertPath", "", "path to CA certificate; either specify this or the mtlsCaCertURL")
 	mtlsCaCertURL            = flag.String("mtlsCaCertURL", "", "URL to get the CA certificate from; either specify this or the mtlsCaCertPath")
-	MtlsClientCertPath       = flag.String("mtlsClientCertPath", "", "path to client certificate")
-	MtlsClientPrivateKeyPath = flag.String("mtlsClientPrivateKeyPath", "", "path to client certificate's corresponding UNENCRYTPTED private key")
+	mtlsClientCertPath       = flag.String("mtlsClientCertPath", "", "path to client certificate")
+	mtlsClientPrivateKeyPath = flag.String("mtlsClientPrivateKeyPath", "", "path to client certificate's corresponding UNENCRYTPTED private key")
 )
 
 // NewClient creates an HTTP client with a TLS Config
@@ -25,7 +26,7 @@ func NewClient(serverName string) (*fasthttp.Client, error) {
 		return nil, fmt.Errorf("error creating ca cert pool: %w", err)
 	}
 
-	cert, err := tls.LoadX509KeyPair(*MtlsClientCertPath, *MtlsClientPrivateKeyPath)
+	cert, err := tls.LoadX509KeyPair(*mtlsClientCertPath, *mtlsClientPrivateKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load client certificate pair: %w", err)
 	}
@@ -38,6 +39,27 @@ func NewClient(serverName string) (*fasthttp.Client, error) {
 
 	httpClient := &fasthttp.Client{TLSConfig: tlsCfg}
 	return httpClient, nil
+}
+
+func GetClientCertCN() (string, error) {
+	if *mtlsClientCertPath == "" {
+		return "", errors.New("mtlsClientCertPath is required")
+	}
+
+	cert, err := tls.LoadX509KeyPair(*mtlsClientCertPath, *mtlsClientPrivateKeyPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to load client certificate pair: %w", err)
+	}
+
+	return cert.Leaf.Subject.CommonName, nil
+}
+
+func GetClientCertPath() string {
+	return *mtlsClientCertPath
+}
+
+func GetClientCertKeyPath() string {
+	return *mtlsClientPrivateKeyPath
 }
 
 func createCaPool() (*x509.CertPool, error) {

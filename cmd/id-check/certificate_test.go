@@ -97,3 +97,11 @@ func TestMtls_Random(t *testing.T) {
 	err = client.DoTimeout(req, resp, 5*time.Second)
 	assert.NotNil(t, err)
 }
+
+func TestMtls_GetCommonName(t *testing.T) {
+	setFlags("ca-chain.crt", "DV1.crt", "DV1_unenc.key")
+
+	cn, err := mtls.GetClientCertCN()
+	assert.Nil(t, err)
+	assert.Equal(t, "DV1", cn)
+}
