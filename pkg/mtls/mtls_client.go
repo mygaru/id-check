@@ -62,6 +62,14 @@ func GetClientCertKeyPath() string {
 	return *mtlsClientPrivateKeyPath
 }
 
+func GetCaCertPath() string {
+	return *mtlsCaCertPath
+}
+
+func GetCaCertURL() string {
+	return *mtlsCaCertURL
+}
+
 func createCaPool() (*x509.CertPool, error) {
 	var caCert []byte
 	var err error
@@ -87,5 +95,6 @@ func createCaPool() (*x509.CertPool, error) {
 
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
+
 	return caCertPool, nil
 }
