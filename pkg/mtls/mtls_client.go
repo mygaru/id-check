@@ -21,9 +21,20 @@ var (
 // Use serverName when the Common Name or Alternative Names of the server's certificate do
 // NOT correspond to its FQDN or IP. Set it as the server's CN.
 func NewClient(serverName string) (*fasthttp.Client, error) {
+	tlsCfg, err := GetMTLSConfig(serverName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tls config: %w", err)
+	}
+
+	httpClient := &fasthttp.Client{TLSConfig: tlsCfg}
+	return httpClient, nil
+}
+
+// GetMTLSConfig builds and returns a reusable *tls.Config for mTLS connections.
+func GetMTLSConfig(serverName string) (*tls.Config, error) {
 	caCertPool, err := createCaPool()
 	if err != nil {
-		return nil, fmt.Errorf("error creating ca cert pool: %w", err)
+		return nil, fmt.Errorf("error creating CA pool: %w", err)
 	}
 
 	cert, err := tls.LoadX509KeyPair(*mtlsClientCertPath, *mtlsClientPrivateKeyPath)
@@ -37,8 +48,7 @@ func NewClient(serverName string) (*fasthttp.Client, error) {
 		ServerName:   serverName,
 	}
 
-	httpClient := &fasthttp.Client{TLSConfig: tlsCfg}
-	return httpClient, nil
+	return tlsCfg, nil
 }
 
 func GetClientCertCN() (string, error) {
