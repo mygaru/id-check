@@ -56,7 +56,8 @@ jobs:
 
       - name: Sync REPO_A to TARGET_REPO
         run: |
-          apt install rsync
+          sudo apt-get update
+          sudo apt-get install -y rsync
           rsync -av --exclude-from="$SYNCIGNORE" "$GITHUB_WORKSPACE/" "$TEMP_DIR/target_repo/"
       - name: Configure Git user
         run: |
