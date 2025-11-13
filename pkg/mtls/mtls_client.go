@@ -6,8 +6,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/mygaru/id-check/pkg/proxy"
 	"github.com/valyala/fasthttp"
 	"os"
+	"time"
 )
 
 var (
@@ -89,15 +91,31 @@ func createCaPool() (*x509.CertPool, error) {
 			return nil, fmt.Errorf("failed to read CA certificate from path %s: %w", *mtlsCaCertPath, err)
 		}
 	} else if *mtlsCaCertURL != "" {
-		var code int
-		code, caCert, err = fasthttp.Get(caCert, *mtlsCaCertURL)
+		req := fasthttp.AcquireRequest()
+		resp := fasthttp.AcquireResponse()
+		defer func() {
+			fasthttp.ReleaseRequest(req)
+			fasthttp.ReleaseResponse(resp)
+		}()
+
+		req.SetRequestURI(*mtlsCaCertURL)
+		req.Header.SetMethod(fasthttp.MethodGet)
+
+		client, err := proxy.GetClient(req, *mtlsCaCertURL)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read CA certificate from URL %s: %w", *mtlsCaCertURL, err)
+			return nil, fmt.Errorf("failed to get proxy client: %w", err)
 		}
 
-		if code != fasthttp.StatusOK {
-			return nil, fmt.Errorf("failed to read CA certificate from URL %s: got %d, want %d", *mtlsCaCertURL, code, fasthttp.StatusOK)
+		err = client.DoTimeout(req, resp, 30*time.Second)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get CA certificate from %s: %w", *mtlsCaCertURL, err)
 		}
+
+		if resp.StatusCode() != fasthttp.StatusOK {
+			return nil, fmt.Errorf("failed to read CA certificate from URL %s: got %d, want %d", *mtlsCaCertURL, resp.StatusCode(), fasthttp.StatusOK)
+		}
+
+		caCert = resp.Body()
 
 	} else {
 		return nil, fmt.Errorf("must specify either flags mtlsCaCertURL or mtlsCaCertPath")
