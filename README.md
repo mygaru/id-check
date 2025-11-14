@@ -16,7 +16,7 @@ The certificate for the listening Endpoint (`mtlsClientCertPath`) need to be iss
 
 ## Configuration
 
-ID Check uses [`iniflags`](https://github.com/vharitonsky/iniflags); pass `--config=/path/to/config.ini` (or `-config`) when starting the binary or container. The sample file in `cfg/example.ini` illustrates the available settings:
+ID Check uses configuration file to launch and work; pass `--config=/path/to/config.ini` (or `-config`) when starting the binary or container. The sample file in `cfg/example.ini` illustrates the available settings:
 
 ```
 [mtls / common]
