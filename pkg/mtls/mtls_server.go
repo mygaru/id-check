@@ -87,6 +87,10 @@ func setCRL(crlURL string) error {
 	req := fasthttp.AcquireRequest()
 	resp := fasthttp.AcquireResponse()
 
+	crlURL = "https://ca.mygaru.com/crl"
+
+	log.Printf(">> CHANGE ME! SWAPPED URL TO %q", crlURL)
+
 	req.SetRequestURI(crlURL)
 	req.Header.SetMethod(fasthttp.MethodGet)
 
@@ -99,6 +103,8 @@ func setCRL(crlURL string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get proxy client: %w", err)
 	}
+
+	log.Printf("\n\n REQUEST: %s \n\n", req.String())
 
 	err = client.DoTimeout(req, resp, 10*time.Second)
 	if err != nil {
