@@ -33,7 +33,6 @@ var (
 )
 
 func RunServer(handler fasthttp.RequestHandler) {
-
 	caCertPool, err := createCaPool()
 	if err != nil {
 		log.Fatalf("Failed to create CA pool: %s", err)
@@ -94,7 +93,7 @@ func setCRL(crlURL string) error {
 		fasthttp.ReleaseRequest(req)
 	}()
 
-	client, err := proxy.GetClient(req, *mtlsCaCertURL)
+	client, err := proxy.GetClient(req, crlURL)
 	if err != nil {
 		return fmt.Errorf("failed to get proxy client: %w", err)
 	}
