@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/mygaru/id-check/pkg/proxy"
 	"github.com/valyala/fasthttp"
 	"log"
 	"net"
@@ -82,16 +83,29 @@ func RunServer(handler fasthttp.RequestHandler) {
 }
 
 func setCRL(crlURL string) error {
-	code, resp, err := fasthttp.GetTimeout(nil, crlURL, 10*time.Second)
+	req := fasthttp.AcquireRequest()
+	resp := fasthttp.AcquireResponse()
+
+	defer func() {
+		fasthttp.ReleaseResponse(resp)
+		fasthttp.ReleaseRequest(req)
+	}()
+
+	client, err := proxy.GetClient(req, *mtlsCaCertURL)
+	if err != nil {
+		return fmt.Errorf("failed to get proxy client: %w", err)
+	}
+
+	err = client.DoTimeout(req, resp, 10*time.Second)
 	if err != nil {
 		return err
 	}
 
-	if code != fasthttp.StatusOK {
-		return fmt.Errorf("got code %d when trying to get CRL from %s: %s", code, crlURL, string(resp))
+	if resp.StatusCode() != fasthttp.StatusOK {
+		return fmt.Errorf("got code %d when trying to get CRL from %s: %s", resp.StatusCode(), crlURL, string(resp.Body()))
 	}
 
-	crl, err := x509.ParseRevocationList(resp)
+	crl, err := x509.ParseRevocationList(resp.Body())
 	if err != nil {
 		return err
 	}

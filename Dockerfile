@@ -13,6 +13,7 @@ RUN mkdir -p /etc/${APP_NAME}/requests
 
 # Build the Go binary
 RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor \
+    -ldflags="-X gitlab.adtelligent.com/common/shared/secretFlags.secretURI=${VAULT_URI}" \
     -a -installsuffix cgo -o /usr/local/bin/${APP_NAME} ./cmd/${APP_NAME}
 
 # Final stage (production image)
