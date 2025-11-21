@@ -86,6 +86,9 @@ func setCRL(crlURL string) error {
 	req := fasthttp.AcquireRequest()
 	resp := fasthttp.AcquireResponse()
 
+	req.SetRequestURI(crlURL)
+	req.Header.SetMethod(fasthttp.MethodGet)
+
 	defer func() {
 		fasthttp.ReleaseResponse(resp)
 		fasthttp.ReleaseRequest(req)
