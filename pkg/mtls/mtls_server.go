@@ -10,8 +10,10 @@ import (
 	"github.com/valyala/fasthttp"
 	"log"
 	"net"
+	"strings"
 	"sync/atomic"
 	"time"
+	"unicode"
 )
 
 // todo add more http flags & metrics
@@ -119,12 +121,23 @@ func setCRL(crlURL string) error {
 
 func queryCRL(cert *x509.Certificate, issuerCert *x509.Certificate) error {
 	if crlAtomic.Load() == nil || time.Now().Sub(crlLastCheck.Load().(time.Time)) >= *mtlsCrlCheckInterval {
-		log.Printf("[*] Trying to renew CRL from %s...", cert.CRLDistributionPoints[0])
+
 		if len(cert.CRLDistributionPoints) != 1 {
 			return fmt.Errorf("expected 1 distribution point in issuer certificate, got: %v", issuerCert.CRLDistributionPoints)
 		}
 
-		err := setCRL(cert.CRLDistributionPoints[0])
+		log.Printf("[*] Trying to renew CRL from %q. Len URL = %d", cert.CRLDistributionPoints[0], len(cert.CRLDistributionPoints[0]))
+
+		printableUrl := strings.Map(func(r rune) rune {
+			if unicode.IsPrint(r) {
+				return r
+			}
+			return -1
+		}, cert.CRLDistributionPoints[0])
+
+		log.Printf("Removed non-printables from URL: %q. Len URL = %d", printableUrl, len(printableUrl))
+
+		err := setCRL(printableUrl)
 		if err != nil {
 			return fmt.Errorf("failed to renew CRL: %w", err)
 		}
