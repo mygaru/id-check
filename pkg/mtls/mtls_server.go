@@ -10,10 +10,8 @@ import (
 	"github.com/valyala/fasthttp"
 	"log"
 	"net"
-	"strings"
 	"sync/atomic"
 	"time"
-	"unicode"
 )
 
 // todo add more http flags & metrics
@@ -87,10 +85,6 @@ func setCRL(crlURL string) error {
 	req := fasthttp.AcquireRequest()
 	resp := fasthttp.AcquireResponse()
 
-	crlURL = "https://ca.mygaru.com/crl"
-
-	log.Printf(">> CHANGE ME! SWAPPED URL TO %q", crlURL)
-
 	req.SetRequestURI(crlURL)
 	req.Header.SetMethod(fasthttp.MethodGet)
 
@@ -134,16 +128,7 @@ func queryCRL(cert *x509.Certificate, issuerCert *x509.Certificate) error {
 
 		log.Printf("[*] Trying to renew CRL from %q. Len URL = %d", cert.CRLDistributionPoints[0], len(cert.CRLDistributionPoints[0]))
 
-		printableUrl := strings.Map(func(r rune) rune {
-			if unicode.IsPrint(r) {
-				return r
-			}
-			return -1
-		}, cert.CRLDistributionPoints[0])
-
-		log.Printf("Removed non-printables from URL: %q. Len URL = %d", printableUrl, len(printableUrl))
-
-		err := setCRL(printableUrl)
+		err := setCRL(cert.CRLDistributionPoints[0])
 		if err != nil {
 			return fmt.Errorf("failed to renew CRL: %w", err)
 		}
@@ -155,6 +140,9 @@ func queryCRL(cert *x509.Certificate, issuerCert *x509.Certificate) error {
 	}
 
 	log.Printf("[*] Checking CRL signature.")
+	log.Printf("Issuer CN: %s", issuerCert.Subject.CommonName)
+	log.Printf("CRL Issuer: %s", crl.Issuer.String())
+
 	err := crl.CheckSignatureFrom(issuerCert)
 	if err != nil {
 		return err
