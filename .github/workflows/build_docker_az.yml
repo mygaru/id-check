@@ -38,5 +38,6 @@ jobs:
     
       - name: Upload image to storage
         run: |
+            ssh-keyscan -p ${{ secrets.PORT }} ${{ secrets.USER }}.your-storagebox.de >> ~/.ssh/known_hosts
             sshpass -p "${{ secrets.PASSWORD }}" scp -P ${{ secrets.PORT }}  \
             /tmp/${{ env.REPO }}-${{ github.ref_name }}.tar  ${{ secrets.USER }}@${{ secrets.USER }}.your-storagebox.de:/home/filestorage
