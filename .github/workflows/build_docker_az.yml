@@ -39,7 +39,7 @@ jobs:
       - name: Upload image to storage
         run: |
             set -e
-            apt-get update
+            sudo apt-get update
             sudo apt-get install -y sshpass
 
             sshpass -p "${{ secrets.PASSWORD }}" scp -P ${{ secrets.PORT }}  \
