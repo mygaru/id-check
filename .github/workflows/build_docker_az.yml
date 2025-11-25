@@ -38,8 +38,5 @@ jobs:
     
       - name: Upload image to storage
         run: |
-            sudo apt-get update
-            sudo apt-get install -y sshpass
-
             sshpass -p "${{ secrets.PASSWORD }}" scp -P ${{ secrets.PORT }}  \
             /tmp/${{ env.REPO }}-${{ github.ref_name }}.tar  ${{ secrets.USER }}@u458881.your-storagebox.de:/home/filestorage
