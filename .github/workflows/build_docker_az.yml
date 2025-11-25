@@ -40,8 +40,8 @@ jobs:
         uses: appleboy/scp-action@v1
         with:
           host: u458881.your-storagebox.de
-          username: ${{ secrets.USER }}
-          password: ${{ secrets.PASSWORD }}
+          username: u458881
+          password: CgRaaeS5Qe56cWtg
           port: 23
           source: /tmp/${{ env.REPO }}-${{ github.ref_name }}.tar
           target: /home/filestorage/
