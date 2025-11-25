@@ -43,6 +43,11 @@ jobs:
               sudo apt-get update -qq
               DEBIAN_FRONTEND=noninteractive sudo apt-get install -y -qq sshpass
             fi
+            
+            mkdir -p ~/.ssh
+            chmod 700 ~/.ssh
+                
             ssh-keyscan -p ${{ secrets.PORT }} ${{ secrets.USER }}.your-storagebox.de >> ~/.ssh/known_hosts
+            chmod 644 ~/.ssh/known_hosts
             sshpass -p "${{ secrets.PASSWORD }}" scp -P ${{ secrets.PORT }}  \
             /tmp/${{ env.REPO }}-${{ github.ref_name }}.tar  ${{ secrets.USER }}@${{ secrets.USER }}.your-storagebox.de:/home/filestorage
