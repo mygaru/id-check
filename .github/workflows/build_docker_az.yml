@@ -37,11 +37,10 @@ jobs:
             echo "IMAGE FILE NAME: ${{ env.REPO }}-${{ github.ref_name }}.tar"
     
       - name: Upload image to storage
-        uses: appleboy/scp-action@v1
-        with:
-          host: u458881.your-storagebox.de
-          username: ${{ secrets.USER }}
-          password: ${{ secrets.PASSWORD }}
-          port: ${{ secrets.PORT }}
-          source: /tmp/${{ env.REPO }}-${{ github.ref_name }}.tar
-          target: /home/filestorage
+        run: |
+            set -e
+            apt-get update
+            apt-get install -y sshpass
+
+            sshpass -p "${{ secrets.PASSWORD }}" scp -P ${{ secrets.PORT }}  \
+            /tmp/${{ env.REPO }}-${{ github.ref_name }}.tar  ${{ secrets.USER }}@u458881.your-storagebox.de:/home/filestorage
