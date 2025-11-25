@@ -39,7 +39,7 @@ jobs:
       - name: Upload image to storage
         run: |
             if ! command -v sshpass >/dev/null 2>&1; then
-              log "Installing sshpass ..."
+              echo "Installing sshpass ..."
               sudo apt-get update -qq
               DEBIAN_FRONTEND=noninteractive sudo apt-get install -y -qq sshpass
             fi
