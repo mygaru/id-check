@@ -39,4 +39,4 @@ jobs:
       - name: Upload image to storage
         run: |
             sshpass -p "${{ secrets.PASSWORD }}" scp -P ${{ secrets.PORT }}  \
-            /tmp/${{ env.REPO }}-${{ github.ref_name }}.tar  ${{ secrets.USER }}@u458881.your-storagebox.de:/home/filestorage
+            /tmp/${{ env.REPO }}-${{ github.ref_name }}.tar  ${{ secrets.USER }}@${{ secrets.USER }}.your-storagebox.de:/home/filestorage
