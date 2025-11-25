@@ -41,8 +41,7 @@ jobs:
         with:
           host: u458881.your-storagebox.de
           username: ${{ secrets.USER }}
-          # key: ${{ secrets.STORAGE_SSH_KEY }}
           password: ${{ secrets.PASSWORD }}
-          port: ${{ secrets.PORT }}
+          port: 23
           source: /tmp/${{ env.REPO }}-${{ github.ref_name }}.tar
           target: /home/filestorage/
