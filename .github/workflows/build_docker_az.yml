@@ -1,20 +1,16 @@
 name: Deploy Image to storage server box.mygaru.com
 
 on:
-  workflow_dispatch:
-    inputs:
-      service:
-        description: "trigger build/deploy"
-        required: true
-        type: choice
-        default: "start"
-        options:
-          - start
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+-azcon'
 
 jobs:
   build:
     runs-on: [self-hosted, mygaru] 
     environment: azconn
+    env: 
+      REPO: id-check
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -31,13 +27,13 @@ jobs:
         with:
           context: .
           file: ./Dockerfile 
-          tags: ${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.run_number }} 
-          outputs: type=docker,dest=/tmp/${{ github.event.repository.name }}-${{ github.run_number }}.tar
+          tags: ghcr.io/${{ github.repository_owner }}/${{ env.REPO }}:${{ github.ref_name }} 
+          outputs: type=docker,dest=/tmp/${{ env.REPO }}-${{ github.ref_name }}.tar
         
       - name: show image
         run: | 
-            echo "IMAGE TAG: ${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.run_number }}"
-            echo "IMAGE FILE NAME: ${{ github.event.repository.name }}-${{ github.run_number }}.tar"
+            echo "IMAGE TAG: ghcr.io/${{ github.repository_owner }}/${{ env.REPO }}:${{ github.ref_name }} "
+            echo "IMAGE FILE NAME: ${{ env.REPO }}-${{ github.ref_name }}.tar"
     
       - name: Upload image to storage
         uses: appleboy/scp-action@v1
@@ -47,5 +43,5 @@ jobs:
           password: ${{ secrets.PASSWORD }}
           port: ${{ secrets.PORT }}
           key: ${{ secrets.STORAGE_SSH_KEY }}
-          source: ./tmp/${{ github.event.repository.name }}-${{ github.run_number }}.tar
+          source: /tmp/${{ env.REPO }}-${{ github.ref_name }}.tar
           target: /home/filestorage/
