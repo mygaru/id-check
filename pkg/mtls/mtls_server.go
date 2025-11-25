@@ -49,7 +49,7 @@ func RunServer(handler fasthttp.RequestHandler) {
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 			cert := verifiedChains[0][0]
-			issuerCert := verifiedChains[0][len(verifiedChains[0])-1]
+			issuerCert := verifiedChains[0][1]
 
 			log.Printf("Validating server certificate with CRL (serial: %s)", cert.SerialNumber.String())
 
@@ -84,6 +84,10 @@ func RunServer(handler fasthttp.RequestHandler) {
 func setCRL(crlURL string) error {
 	req := fasthttp.AcquireRequest()
 	resp := fasthttp.AcquireResponse()
+
+	crlURL = "http://ca.mygaru.com/crl"
+
+	log.Printf("Hardcoded CRL URL: %s, REMOVE ME!", crlURL)
 
 	req.SetRequestURI(crlURL)
 	req.Header.SetMethod(fasthttp.MethodGet)
@@ -120,30 +124,33 @@ func setCRL(crlURL string) error {
 }
 
 func queryCRL(cert *x509.Certificate, issuerCert *x509.Certificate) error {
-	if crlAtomic.Load() == nil || time.Now().Sub(crlLastCheck.Load().(time.Time)) >= *mtlsCrlCheckInterval {
+	//if crlAtomic.Load() == nil || time.Now().Sub(crlLastCheck.Load().(time.Time)) >= *mtlsCrlCheckInterval {
 
-		if len(cert.CRLDistributionPoints) != 1 {
-			return fmt.Errorf("expected 1 distribution point in issuer certificate, got: %v", issuerCert.CRLDistributionPoints)
-		}
-
-		log.Printf("[*] Trying to renew CRL from %q. Len URL = %d", cert.CRLDistributionPoints[0], len(cert.CRLDistributionPoints[0]))
-
-		err := setCRL(cert.CRLDistributionPoints[0])
-		if err != nil {
-			return fmt.Errorf("failed to renew CRL: %w", err)
-		}
+	if len(cert.CRLDistributionPoints) != 1 {
+		return fmt.Errorf("expected 1 distribution point in issuer certificate, got: %v", issuerCert.CRLDistributionPoints)
 	}
+
+	log.Printf("[*] Trying to renew CRL from %q. Len URL = %d", cert.CRLDistributionPoints[0], len(cert.CRLDistributionPoints[0]))
+
+	err := setCRL(cert.CRLDistributionPoints[0])
+	if err != nil {
+		return fmt.Errorf("failed to renew CRL: %w", err)
+	}
+	//}
 
 	crl, ok := crlAtomic.Load().(*x509.RevocationList)
 	if !ok {
 		return errors.New("CRL Atomic Load failed")
 	}
 
-	log.Printf("[*] Checking CRL signature.")
+	if crl.NextUpdate.Before(time.Now()) {
+		return errors.New("crl is outdated")
+	}
+
 	log.Printf("Issuer CN: %s", issuerCert.Subject.CommonName)
 	log.Printf("CRL Issuer: %s", crl.Issuer.String())
 
-	err := crl.CheckSignatureFrom(issuerCert)
+	err = crl.CheckSignatureFrom(issuerCert)
 	if err != nil {
 		return err
 	}
