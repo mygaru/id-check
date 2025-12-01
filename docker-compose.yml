@@ -1,7 +1,7 @@
 services:
   id-check:
     pull_policy: never
-    image: <your_builded_image>
+    image: <your_built_image>
     ###EXAMPLE###
     #image: ghcr.io/mygaru/id-check:1.0.1
     container_name: id-check
