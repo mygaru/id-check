@@ -1,15 +1,18 @@
 services:
   id-check:
     pull_policy: never
+    # Specify your built image here
     image: <your_built_image>
-    ###EXAMPLE###
-    #image: ghcr.io/mygaru/id-check:1.0.1
     container_name: id-check
     restart: always
+    command: /usr/local/bin/id-check -config /etc/id-check/base.ini
     volumes:
-      ###Path To Certs used for: [mtls / server]
+      # Considering Letsencrypt as an example
+      # Take care about permissions and service restart upon cert renewal
+      # Paths for [mtls/server] section
       - /etc/letsencrypt/live/<domain>:/etc/letsencrypt/live/<domain>:ro
       - /etc/letsencrypt/archive/<domain>:/etc/letsencrypt/archive/<domain>:ro
+      # Path to config file
       - ./cfg/example.ini:/etc/id-check/base.ini
     ports:
       - "443:443"
