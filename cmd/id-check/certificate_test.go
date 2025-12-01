@@ -1,11 +1,13 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"github.com/mygaru/id-check/pkg/mtls"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
+	"log"
 	"testing"
 	"time"
 )
@@ -104,4 +106,23 @@ func TestMtls_GetCommonName(t *testing.T) {
 	cn, err := mtls.GetClientCertCN()
 	assert.Nil(t, err)
 	assert.Equal(t, "DV1", cn)
+}
+
+func TestReputationCheck(t *testing.T) {
+
+	cert, err := tls.LoadX509KeyPair("../../certs/DV1.crt", "../../certs/DV1_unenc.key")
+	if err != nil {
+		log.Fatalf("Failed to load certificate pair: %s", err)
+	}
+
+	status, reason, err := mtls.CheckCertReputation(cert.Leaf)
+	if err != nil {
+		log.Fatalf("Failed to check certificate: %s", err)
+	}
+
+	if status != mtls.CertStatusUnknown {
+		log.Fatalf("Certificate status is %s, want %s", status, mtls.CertStatusUnknown)
+	}
+
+	log.Printf("Certificate status is %s, reason is %s", status, reason)
 }
