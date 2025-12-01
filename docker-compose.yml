@@ -17,10 +17,10 @@ services:
     ports:
       - "443:443"
     networks:
-      ident_network:
+      id_check_network:
         ipv4_address: 172.20.0.20
 networks:
-  ident_network:
+  id_check_network:
     ipam:
       config:
         - subnet: 172.20.0.0/16
