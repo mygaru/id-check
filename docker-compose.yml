@@ -1,0 +1,22 @@
+services:
+  id-check:
+    pull_policy: never
+    image: ghcr.io/mygaru/id-check:1.0.5
+    container_name: id-check
+    restart: always
+    volumes:
+      - ./certs:/certs
+      - ./configs/id-check.ini:/etc/id-check/base.ini
+      - /etc/letsencrypt/live/vf.pim.mygaru.com:/etc/letsencrypt/live/vf.pim.mygaru.com:ro
+      - /etc/letsencrypt/archive/vf.pim.mygaru.com:/etc/letsencrypt/archive/vf.pim.mygaru.com:ro
+    ports:
+      - "443:443"
+    networks:
+      ident_network:
+        ipv4_address: 172.20.0.20
+networks:
+  ident_network:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
