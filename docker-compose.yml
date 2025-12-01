@@ -7,8 +7,9 @@ services:
     container_name: id-check
     restart: always
     volumes:
-      #Path To Certs 
-      #- ./certs:/certs
+      ###Path To Certs used for: [mtls / server]
+      - /etc/letsencrypt/live/<domain>:/etc/letsencrypt/live/<domain>:ro
+      - /etc/letsencrypt/archive/<domain>:/etc/letsencrypt/archive/<domain>:ro
       - ./cfg/example.ini:/etc/id-check/base.ini
     ports:
       - "443:443"
