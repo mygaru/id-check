@@ -1,7 +1,6 @@
 .git
 .github
 manifests
-#docker-compose.yml
 cfg/argo-application-ukrtelecom.yml
 cfg/argo-application.yml
 .syncignore
