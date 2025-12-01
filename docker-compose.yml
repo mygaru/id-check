@@ -1,0 +1,23 @@
+services:
+  id-check:
+    pull_policy: never
+    image: <your_builded_image>
+    ###EXAMPLE###
+    #image: ghcr.io/mygaru/id-check:1.0.1
+    container_name: id-check
+    restart: always
+    volumes:
+      #Path To Certs 
+      #- ./certs:/certs
+      - ./cfg/example.ini:/etc/id-check/base.ini
+    ports:
+      - "443:443"
+    networks:
+      ident_network:
+        ipv4_address: 172.20.0.20
+networks:
+  ident_network:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
