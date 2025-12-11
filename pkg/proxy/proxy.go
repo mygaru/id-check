@@ -2,31 +2,20 @@ package proxy
 
 import (
 	"bufio"
-	"context"
 	"crypto/tls"
 	"encoding/base64"
-	"flag"
 	"fmt"
 	"github.com/valyala/fasthttp"
 	"golang.org/x/net/http/httpproxy"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"net"
-	"net/http"
 	"net/url"
 	"time"
 )
-
-var isProxyEnabled = flag.Bool("isProxyEnabled", false, "Whether proxy is enabled")
 
 type ProxyContext struct {
 	BaseURLScheme   string
 	ProxyURL        *url.URL
 	ProxyAuthHeader string
-}
-
-func GetIsProxyEnabledFlag() bool {
-	return *isProxyEnabled
 }
 
 // NewProxyContext resolves proxy for the provided base URI and precomputes auth header.
@@ -52,19 +41,8 @@ func NewProxyContext(baseURI string) (*ProxyContext, error) {
 	return pc, nil
 }
 
-func NewProxyContextFromHostPort(hostport string, useTLS bool) (*ProxyContext, error) {
-	scheme := "http"
-
-	if useTLS {
-		scheme = "https"
-	}
-
-	baseURI := scheme + "://" + hostport
-	return NewProxyContext(baseURI)
-}
-
-func GetClient(req *fasthttp.Request, baseUrl string) (*fasthttp.Client, error) {
-	if !*isProxyEnabled || (httpproxy.FromEnvironment().HTTPSProxy == "" && httpproxy.FromEnvironment().HTTPProxy == "") {
+func GetClient(req *fasthttp.Request, baseUrl string, enableProxy bool) (*fasthttp.Client, error) {
+	if !enableProxy || httpproxy.FromEnvironment().HTTPSProxy == "" && httpproxy.FromEnvironment().HTTPProxy == "" {
 		return &fasthttp.Client{}, nil
 	}
 
@@ -154,105 +132,6 @@ func ProxyDialerTimeout(pc *ProxyContext, timeout time.Duration) fasthttp.DialFu
 				_ = conn.Close()
 				return nil, fmt.Errorf("could not connect to proxy: code: %d body %s", res.StatusCode(), string(res.Body()))
 			}
-		}
-
-		return conn, nil
-	}
-}
-
-func GetConnGRPC(hostport string) (*grpc.ClientConn, error) {
-	if !*isProxyEnabled || httpproxy.FromEnvironment().HTTPProxy == "" {
-		conn, err := grpc.Dial(hostport, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			return nil, fmt.Errorf("could not connect grpc server: %v", err)
-		}
-
-		return conn, nil
-	}
-
-	pc, err := NewProxyContextFromHostPort(hostport, false)
-	if err != nil {
-		return nil, fmt.Errorf("could not create proxy context: %v", err)
-	}
-
-	dialer := ProxyDialerGRPC(pc, 10*time.Second)
-
-	conn, err := grpc.DialContext(
-		context.Background(),
-		hostport,
-		grpc.WithContextDialer(dialer),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("could not connect grpc server: %v", err)
-	}
-
-	return conn, nil
-}
-
-// ProxyDialerGRPC returns a function suitable for grpc.WithContextDialer.
-func ProxyDialerGRPC(pc *ProxyContext, timeout time.Duration) func(ctx context.Context, addr string) (net.Conn, error) {
-	return func(ctx context.Context, addr string) (net.Conn, error) {
-		if pc == nil || pc.ProxyURL == nil {
-			if timeout == 0 {
-				d := &net.Dialer{}
-				return d.DialContext(ctx, "tcp", addr)
-			}
-
-			d := &net.Dialer{Timeout: timeout}
-			return d.DialContext(ctx, "tcp", addr)
-		}
-
-		proxyHost := pc.ProxyURL.Host
-
-		dialer := &net.Dialer{}
-
-		if timeout > 0 {
-			dialer.Timeout = timeout
-		}
-
-		conn, err := dialer.DialContext(ctx, "tcp", proxyHost)
-		if err != nil {
-			return nil, err
-		}
-
-		if pc.ProxyURL.Scheme == "https" {
-			tlsCfg := &tls.Config{
-				ServerName: pc.ProxyURL.Hostname(),
-			}
-
-			tlsConn := tls.Client(conn, tlsCfg)
-			if err := tlsConn.Handshake(); err != nil {
-				_ = tlsConn.Close()
-				return nil, fmt.Errorf("TLS handshake with proxy failed: %w", err)
-			}
-
-			conn = tlsConn
-		}
-
-		connectReq := "CONNECT " + addr + " HTTP/1.1\r\n"
-
-		if pc.ProxyAuthHeader != "" {
-			connectReq += "Proxy-Authorization: " + pc.ProxyAuthHeader + "\r\n"
-		}
-
-		connectReq += "\r\n"
-
-		if _, err := conn.Write([]byte(connectReq)); err != nil {
-			_ = conn.Close()
-			return nil, err
-		}
-
-		br := bufio.NewReader(conn)
-		resp, err := http.ReadResponse(br, &http.Request{Method: "CONNECT"})
-		if err != nil {
-			_ = conn.Close()
-			return nil, fmt.Errorf("reading CONNECT response: %w", err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			_ = conn.Close()
-			return nil, fmt.Errorf("proxy CONNECT failed: %s", resp.Status)
 		}
 
 		return conn, nil
