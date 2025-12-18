@@ -22,8 +22,9 @@ var (
 // NewClient creates an HTTP client with a TLS Config
 // Use serverName when the Common Name or Alternative Names of the server's certificate do
 // NOT correspond to its FQDN or IP. Set it as the server's CN.
-func NewClient(serverName string) (*fasthttp.Client, error) {
-	tlsCfg, err := GetMTLSConfig(serverName)
+// Set proxyEnabled = true if you want the requests that get the CA to though proxy.
+func NewClient(serverName string, proxyEnabled bool) (*fasthttp.Client, error) {
+	tlsCfg, err := GetMTLSConfig(serverName, proxyEnabled)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tls config: %w", err)
 	}
@@ -33,8 +34,8 @@ func NewClient(serverName string) (*fasthttp.Client, error) {
 }
 
 // GetMTLSConfig builds and returns a reusable *tls.Config for mTLS connections.
-func GetMTLSConfig(serverName string) (*tls.Config, error) {
-	caCertPool, err := createCaPool()
+func GetMTLSConfig(serverName string, proxyEnabled bool) (*tls.Config, error) {
+	caCertPool, err := createCaPool(proxyEnabled)
 	if err != nil {
 		return nil, fmt.Errorf("error creating CA pool: %w", err)
 	}
@@ -82,7 +83,7 @@ func GetCaCertURL() string {
 	return *mtlsCaCertURL
 }
 
-func createCaPool() (*x509.CertPool, error) {
+func createCaPool(proxyEnabled bool) (*x509.CertPool, error) {
 	var caCert []byte
 	var err error
 	if *mtlsCaCertPath != "" {
@@ -101,7 +102,7 @@ func createCaPool() (*x509.CertPool, error) {
 		req.SetRequestURI(*mtlsCaCertURL)
 		req.Header.SetMethod(fasthttp.MethodGet)
 
-		client, err := proxy.GetClient(req, *mtlsCaCertURL)
+		client, err := proxy.GetClient(req, *mtlsCaCertURL, proxyEnabled)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get proxy client: %w", err)
 		}

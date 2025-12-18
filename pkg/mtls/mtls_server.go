@@ -23,10 +23,11 @@ var (
 	mtlsServerPrivateKeyPath = flag.String("mtlsServerPrivateKeyPath", "", "Path to file containing private key corresponding to server certificate")
 	mtlsServerMaxBodySize    = flag.Int("mtlsServerMaxBodySize", 536870912, "Max request body size")
 	mtlsReputationUrl        = flag.String("mtlsReputationUrl", "https://ca.mygaru.com/reputation", "Where to check cert status")
+	mtlsServerProxyEnabled   = flag.Bool("mtlsServerProxyEnabled", false, "Whether to enable proxy to get CA certificate")
 )
 
 func RunServer(handler fasthttp.RequestHandler) {
-	caCertPool, err := createCaPool()
+	caCertPool, err := createCaPool(*mtlsServerProxyEnabled)
 	if err != nil {
 		log.Fatalf("Failed to create CA pool: %s", err)
 	}
@@ -44,7 +45,7 @@ func RunServer(handler fasthttp.RequestHandler) {
 			cert := verifiedChains[0][0]
 			log.Printf("Validating server certificate with CRL (serial: %s)", cert.SerialNumber.String())
 
-			status, reason, err := CheckCertReputation(cert)
+			status, reason, err := CheckCertReputation(cert, *mtlsServerProxyEnabled)
 			if err != nil {
 				return fmt.Errorf("error checking reputation: %s", err)
 			}
@@ -88,7 +89,7 @@ const (
 )
 
 // CheckCertReputation checks reputation of cert, and returns status, reason, and error
-func CheckCertReputation(cert *x509.Certificate) (string, string, error) {
+func CheckCertReputation(cert *x509.Certificate, proxyEnabled bool) (string, string, error) {
 	req := fasthttp.AcquireRequest()
 	resp := fasthttp.AcquireResponse()
 
@@ -101,7 +102,7 @@ func CheckCertReputation(cert *x509.Certificate) (string, string, error) {
 
 	log.Printf("Checking reputation of %s", url)
 
-	client, err := proxy.GetClient(req, url)
+	client, err := proxy.GetClient(req, url, proxyEnabled)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get proxy client: %w", err)
 	}
