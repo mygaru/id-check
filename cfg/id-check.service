@@ -1,0 +1,14 @@
+[Unit]
+Description=myGaru ID Check service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/id-check -config /etc/id-check/base.ini
+Restart=on-failure
+RestartSec=5s
+Environment=GOGC=50
+
+[Install]
+WantedBy=multi-user.target
