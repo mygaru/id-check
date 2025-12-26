@@ -122,8 +122,14 @@ func createCaPool(proxyEnabled bool) (*x509.CertPool, error) {
 		return nil, fmt.Errorf("must specify either flags mtlsCaCertURL or mtlsCaCertPath")
 	}
 
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
+	systemPool, err := x509.SystemCertPool()
+	if err != nil {
+		systemPool = x509.NewCertPool()
+	}
 
-	return caCertPool, nil
+	if !systemPool.AppendCertsFromPEM(caCert) {
+		return nil, fmt.Errorf("failed to append CA certificate: %s", caCert)
+	}
+
+	return systemPool, nil
 }
