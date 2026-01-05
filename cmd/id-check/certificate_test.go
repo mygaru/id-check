@@ -26,7 +26,7 @@ func setFlags(caCrt, certFile, keyFile string) {
 
 func TestMtls_Revoked(t *testing.T) {
 	setFlags("ca-chain.crt", "DV2.crt", "DV2_unenc.key")
-	client, err := mtls.NewClient("Server1", false)
+	client, err := mtls.NewClient("Server1")
 	assert.Nil(t, err)
 
 	req := fasthttp.AcquireRequest()
@@ -44,7 +44,7 @@ func TestMtls_Revoked(t *testing.T) {
 
 func TestMtls(t *testing.T) {
 	setFlags("ca-chain.crt", "DV1.crt", "DV1_unenc.key")
-	client, err := mtls.NewClient("Server1", false)
+	client, err := mtls.NewClient("Server1")
 	assert.Nil(t, err)
 
 	req := fasthttp.AcquireRequest()
@@ -64,7 +64,7 @@ func TestMtls(t *testing.T) {
 
 func TestMtlsForward(t *testing.T) {
 	setFlags("ca-chain.crt", "DV1.crt", "DV1_unenc.key")
-	client, err := mtls.NewClient("Server1", false)
+	client, err := mtls.NewClient("Server1")
 	assert.Nil(t, err)
 
 	req := fasthttp.AcquireRequest()
@@ -84,7 +84,7 @@ func TestMtlsForward(t *testing.T) {
 
 func TestMtls_Random(t *testing.T) {
 	setFlags("example-ca.crt", "example_cl1.crt", "example_client1.key")
-	client, err := mtls.NewClient("Server1", false)
+	client, err := mtls.NewClient("Server1")
 	assert.Nil(t, err)
 
 	req := fasthttp.AcquireRequest()
@@ -115,7 +115,7 @@ func TestReputationCheck(t *testing.T) {
 		log.Fatalf("Failed to load certificate pair: %s", err)
 	}
 
-	status, reason, err := mtls.CheckCertReputation(cert.Leaf, false)
+	status, reason, err := mtls.CheckCertReputation(cert.Leaf)
 	if err != nil {
 		log.Fatalf("Failed to check certificate: %s", err)
 	}

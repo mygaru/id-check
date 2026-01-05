@@ -18,6 +18,11 @@ type ProxyContext struct {
 	ProxyAuthHeader string
 }
 
+func IsProxyEnabled() bool {
+	cfg := httpproxy.FromEnvironment()
+	return cfg.HTTPProxy != "" || cfg.HTTPSProxy != ""
+}
+
 // NewProxyContext resolves proxy for the provided base URI and precomputes auth header.
 func NewProxyContext(baseURI string) (*ProxyContext, error) {
 	parsed, err := url.Parse(baseURI)
@@ -41,8 +46,8 @@ func NewProxyContext(baseURI string) (*ProxyContext, error) {
 	return pc, nil
 }
 
-func GetClient(req *fasthttp.Request, baseUrl string, enableProxy bool) (*fasthttp.Client, error) {
-	if !enableProxy || httpproxy.FromEnvironment().HTTPSProxy == "" && httpproxy.FromEnvironment().HTTPProxy == "" {
+func GetClient(req *fasthttp.Request, baseUrl string) (*fasthttp.Client, error) {
+	if !IsProxyEnabled() {
 		return &fasthttp.Client{}, nil
 	}
 
