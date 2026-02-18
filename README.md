@@ -35,7 +35,7 @@ mtlsServerListenAddr = :443
 mtlsServerMaxBodySize = 536870912
 
 [forwarding]
-idCheckForwardTrafficAddr = http://id-hash.host-or-ip/pim
+idCheckForwardTrafficAddr = http://id-hash.host-or-ip
 idCheckForwardTimeout = 10m
 
 [proxy]
