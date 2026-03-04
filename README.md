@@ -20,9 +20,10 @@ ID Check uses configuration file to launch and work; pass `--config=/path/to/con
 
 ```
 [mtls / common]
+; set either of these
+; mtlsCaCertPath takes precedence if both present
 mtlsCaCertPath =
 mtlsCaCertURL = http://ca.mygaru.com/ca-chain
-mtlsCrlCheckInterval = 1h
 
 #[mtls / client]
 #mtlsClientCertPath =
@@ -32,14 +33,13 @@ mtlsCrlCheckInterval = 1h
 mtlsServerCertPath =
 mtlsServerPrivateKeyPath =
 mtlsServerListenAddr = :443
+# ~500MB
 mtlsServerMaxBodySize = 536870912
 
 [forwarding]
-idCheckForwardTrafficAddr = http://id-hash.host-or-ip/pim
+idCheckForwardTrafficAddr = http://id-hash.host-or-ip:8080/pim
 idCheckForwardTimeout = 10m
 
-[proxy]
-isProxyEnabled = false
 ```
 
 - `mtls / common`: pick either a local CA bundle (`mtlsCaCertPath`) or a URL (`mtlsCaCertURL`); if both are set, the file path wins. This bundle is required to validate client certificates in incoming requests. The `mtlsCrlCheckInterval` instructs how often to refresh the CRL which comes in client ceriticates.
