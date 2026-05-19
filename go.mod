@@ -12,7 +12,7 @@ require (
 	github.com/valyala/fastjson v1.6.4
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	golang.org/x/net v0.46.0
-	google.golang.org/grpc v1.76.0
+	google.golang.org/grpc v1.79.3
 )
 
 require (
