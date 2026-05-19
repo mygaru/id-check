@@ -6,6 +6,11 @@ services:
     container_name: id-check
     restart: always
     command: /usr/local/bin/id-check -config /etc/id-check/base.ini
+    # Use this env vars if http proxy is the only way to contact the Internet (PKI/CA)
+    environment:
+      - https_proxy=http://10.210.210.1:3128/
+      - http_proxy=http://10.210.210.1:3128/
+      - no_proxy=localhost,127.0.0.1,10.210.129.0/24
     volumes:
       # Considering Letsencrypt as an example
       # Take care about permissions and service restart upon cert renewal
@@ -16,12 +21,4 @@ services:
       - ./cfg/example.ini:/etc/id-check/base.ini
     ports:
       - "443:443"
-    networks:
-      id_check_network:
-        ipv4_address: 172.20.0.20
-networks:
-  id_check_network:
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-          gateway: 172.20.0.1
+
