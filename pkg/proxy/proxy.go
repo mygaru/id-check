@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type ProxyContext struct {
+type Context struct {
 	BaseURLScheme   string
 	ProxyURL        *url.URL
 	ProxyAuthHeader string
@@ -24,7 +24,7 @@ func IsProxyEnabled() bool {
 }
 
 // NewProxyContext resolves proxy for the provided base URI and precomputes auth header.
-func NewProxyContext(baseURI string) (*ProxyContext, error) {
+func NewProxyContext(baseURI string) (*Context, error) {
 	parsed, err := url.Parse(baseURI)
 	if err != nil {
 		return nil, fmt.Errorf("parse base uri %q: %w", baseURI, err)
@@ -37,7 +37,7 @@ func NewProxyContext(baseURI string) (*ProxyContext, error) {
 		return nil, fmt.Errorf("proxy lookup failed for %s: %w", parsed.String(), err)
 	}
 
-	pc := &ProxyContext{BaseURLScheme: parsed.Scheme, ProxyURL: proxyURL}
+	pc := &Context{BaseURLScheme: parsed.Scheme, ProxyURL: proxyURL}
 
 	if proxyURL != nil && proxyURL.User != nil {
 		pc.ProxyAuthHeader = buildBasicProxyAuthHeader(proxyURL)
@@ -46,7 +46,7 @@ func NewProxyContext(baseURI string) (*ProxyContext, error) {
 	return pc, nil
 }
 
-func GetClient(req *fasthttp.Request, baseUrl string) (*fasthttp.Client, error) {
+func GetClient(baseUrl string) (*fasthttp.Client, error) {
 	if !IsProxyEnabled() {
 		return &fasthttp.Client{}, nil
 	}
@@ -57,20 +57,17 @@ func GetClient(req *fasthttp.Request, baseUrl string) (*fasthttp.Client, error) 
 	}
 
 	// For plain HTTP (the caller's request will be sent to proxy as it is)
-	if pc.BaseURLScheme == "http" && pc.ProxyURL != nil && pc.ProxyAuthHeader != "" {
-		req.Header.Set("Proxy-Authorization", pc.ProxyAuthHeader)
-	}
 
 	return &fasthttp.Client{
 		Dial: ProxyDialer(pc),
 	}, nil
 }
 
-func ProxyDialer(pc *ProxyContext) fasthttp.DialFunc {
+func ProxyDialer(pc *Context) fasthttp.DialFunc {
 	return ProxyDialerTimeout(pc, 0)
 }
 
-func ProxyDialerTimeout(pc *ProxyContext, timeout time.Duration) fasthttp.DialFunc {
+func ProxyDialerTimeout(pc *Context, timeout time.Duration) fasthttp.DialFunc {
 	return func(addr string) (net.Conn, error) {
 		if pc == nil || pc.ProxyURL == nil {
 			if timeout == 0 {

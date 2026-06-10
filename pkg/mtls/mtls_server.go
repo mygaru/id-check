@@ -101,7 +101,7 @@ func CheckCertReputation(cert *x509.Certificate) (string, string, error) {
 
 	log.Printf("Checking reputation of %s", url)
 
-	client, err := proxy.GetClient(req, url)
+	client, err := proxy.GetClient(url)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get proxy client: %w", err)
 	}
