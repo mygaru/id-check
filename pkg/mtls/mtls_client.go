@@ -27,6 +27,26 @@ var (
 
 var certStore atomic.Value
 
+// Deprecated
+func GetClientCertPath() string {
+	return *mtlsClientCertPath
+}
+
+// Deprecated
+func GetClientCertKeyPath() string {
+	return *mtlsClientPrivateKeyPath
+}
+
+// Deprecated
+func GetCaCertPath() string {
+	return *mtlsCaCertPath
+}
+
+// Deprecated
+func GetCaCertURL() string {
+	return *mtlsCaCertURL
+}
+
 func Init() {
 	_, err := loadCert()
 	if err != nil {
