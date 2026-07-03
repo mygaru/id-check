@@ -32,12 +32,12 @@ github.com/valyala/fastjson/fastfloat
 # github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 ## explicit
 github.com/vharitonsky/iniflags
-# golang.org/x/net v0.48.0
-## explicit; go 1.24.0
+# golang.org/x/net v0.55.0
+## explicit; go 1.25.0
 golang.org/x/net/http/httpproxy
 golang.org/x/net/idna
-# golang.org/x/text v0.32.0
-## explicit; go 1.24.0
+# golang.org/x/text v0.37.0
+## explicit; go 1.25.0
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
