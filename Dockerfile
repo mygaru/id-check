@@ -1,5 +1,5 @@
 # Build stage (named "builder")
-FROM golang:1.24 AS builder
+FROM golang:1.26 AS builder
 ARG VAULT_URI
 
 ARG APP_NAME=id-check

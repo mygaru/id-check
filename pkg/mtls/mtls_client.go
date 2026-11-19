@@ -6,14 +6,15 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/mygaru/id-check/pkg/provider/mygaru"
-	"github.com/mygaru/id-check/pkg/proxy"
-	"github.com/mygaru/id-check/pkg/updater"
-	"github.com/valyala/fasthttp"
 	"log"
 	"os"
 	"sync/atomic"
 	"time"
+
+	"github.com/mygaru/id-check/pkg/provider/mygaru"
+	"github.com/mygaru/id-check/pkg/proxy"
+	"github.com/mygaru/id-check/pkg/updater"
+	"github.com/valyala/fasthttp"
 )
 
 var (
@@ -27,22 +28,18 @@ var (
 
 var certStore atomic.Value
 
-// Deprecated
 func GetClientCertPath() string {
 	return *mtlsClientCertPath
 }
 
-// Deprecated
 func GetClientCertKeyPath() string {
 	return *mtlsClientPrivateKeyPath
 }
 
-// Deprecated
 func GetCaCertPath() string {
 	return *mtlsCaCertPath
 }
 
-// Deprecated
 func GetCaCertURL() string {
 	return *mtlsCaCertURL
 }
@@ -203,4 +200,17 @@ func createCaPool() (*x509.CertPool, error) {
 	}
 
 	return systemPool, nil
+}
+
+func ReloadClientCert() error {
+	c, err := tls.LoadX509KeyPair(*mtlsClientCertPath, *mtlsClientPrivateKeyPath)
+	if err != nil {
+		return fmt.Errorf("failed to load client certificate pair: %w", err)
+	}
+
+	certStore.Store(&c)
+
+	log.Printf("Reloaded cert to certStore CN=%s serial=%v.", c.Leaf.Subject.CommonName, c.Leaf.SerialNumber)
+
+	return nil
 }

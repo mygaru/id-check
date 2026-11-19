@@ -5,10 +5,11 @@ github.com/andybalholm/brotli/matchfinder
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/klauspost/compress v1.17.11
-## explicit; go 1.21
+# github.com/klauspost/compress v1.18.7
+## explicit; go 1.24
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
+github.com/klauspost/compress/internal/le
 github.com/klauspost/compress/zlib
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
@@ -32,12 +33,12 @@ github.com/valyala/fastjson/fastfloat
 # github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 ## explicit
 github.com/vharitonsky/iniflags
-# golang.org/x/net v0.48.0
-## explicit; go 1.24.0
+# golang.org/x/net v0.62.0
+## explicit; go 1.26.0
 golang.org/x/net/http/httpproxy
 golang.org/x/net/idna
-# golang.org/x/text v0.32.0
-## explicit; go 1.24.0
+# golang.org/x/text v0.43.0
+## explicit; go 1.26.0
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
